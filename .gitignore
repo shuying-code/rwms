@@ -1,0 +1,34 @@
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+
+# Build
+target/
+**/*.rs.bk
+
+# Build / packaging artifacts
+build_output.txt
+*.log
+output/
+innosetup-*.exe
+*.pdb
+
+# Runtime data
+database/
+logs/
+
+# IDE
+.idea/
+.vscode/
+.comate/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

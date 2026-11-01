@@ -1,0 +1,61 @@
+# ============================================
+# WMS 仓库管理系统 - 应用配置文件
+# 对应 Spring Boot 的 application.yml
+# ============================================
+
+# 服务器配置
+server:
+  port: 8080
+  host: "0.0.0.0"
+  
+# 应用配置
+app:
+  name: "RWMS - Rust Warehouse Management System"
+  version: "1.0.0"
+  description: "仓库管理系统 - Rust + Axum 实现"
+
+# 数据库配置
+database:
+  # SQLite 数据库连接
+  # 数据库路径由代码决定（不受此url配置影响）：
+  #   - Windows: 程序运行目录下的 wms.db
+  #   - Linux/macOS: /wms/wms.db
+  #   - 数据库文件会在首次启动时自动创建
+  # 如需自定义路径，请修改 src/config/database.rs 中的 DB_FILE_PATH 常量
+  pool:
+    max_connections: 10
+    min_connections: 5
+    connect_timeout: 30
+    idle_timeout: 600
+  
+# JWT 认证配置
+jwt:
+  secret: "your-secret-key-change-in-production"
+  expiration: 3600  # Token过期时间（秒），默认1小时
+  issuer: "wms-system"
+
+# 日志配置
+logging:
+  level: "INFO"  # TRACE, DEBUG, INFO, WARN, ERROR
+  format: "pretty"  # pretty, json, compact
+  
+# CORS 跨域配置
+cors:
+  allow_origins: "*"  # 允许的源，生产环境应指定具体域名
+  allow_methods: "*"  # 允许的HTTP方法
+  allow_headers: "*"  # 允许的请求头
+
+# 业务配置
+business:
+  # 分页配置
+  pagination:
+    default_page_size: 10
+    max_page_size: 100
+  
+  # 库存预警配置
+  stock:
+    warning_threshold: 10  # 库存预警阈值
+  
+  # 订单配置
+  order:
+    auto_complete_hours: 24  # 订单自动完成时间（小时）

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS - 供应商管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; background: #f5f7fa; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0 30px; height: 60px; display: flex; justify-content: space-between; align-items: center; }
+        .container { display: flex; min-height: calc(100vh - 60px); }
+        .sidebar { width: 220px; background: white; padding: 20px 0; }
+        .menu-item { padding: 15px 25px; cursor: pointer; color: #333; text-decoration: none; display: block; }
+        .menu-item:hover, .menu-item.active { background: #f0f2ff; color: #667eea; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .page-header { background: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 20px; }
+        .toolbar { display: flex; gap: 10px; margin-top: 15px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .data-table { background: white; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        thead { background: #f5f7fa; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; border-radius: 10px; padding: 30px; width: 500px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>WMS 库存管理系统</h1>
+        <div><span id="userName">管理员</span> | <a href="#" onclick="logout()" style="color: white;">退出</a></div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <a href="/index.html" class="menu-item">📊 首页</a>
+            <a href="/warehouse.html" class="menu-item">🏭 仓库管理</a>
+            <a href="/material.html" class="menu-item">📦 物资管理</a>
+            <a href="/category.html" class="menu-item">📑 物资分类</a>
+            <a href="/inorder.html" class="menu-item">📥 入库管理</a>
+            <a href="/outorder.html" class="menu-item">📤 出库管理</a>
+            <a href="/stock.html" class="menu-item">📈 库存管理</a>
+            <a href="/supplier.html" class="menu-item active">🤝 供应商管理</a>
+            <a href="/customer.html" class="menu-item">👥 客户管理</a>
+        </div>
+        <div class="main-content">
+            <div class="page-header">
+                <h2>供应商管理</h2>
+                <div class="toolbar"><button class="btn btn-primary" onclick="showAddModal()">+ 新增供应商</button></div>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead><tr><th>供应商ID</th><th>供应商名称</th><th>联系人</th><th>联系电话</th><th>备注</th><th>操作</th></tr></thead>
+                    <tbody id="supplierTableBody"><tr><td colspan="6" style="text-align: center;">加载中...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div id="supplierModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">新增供应商</h3>
+            <form id="supplierForm">
+                <input type="hidden" id="supplierId">
+                <div class="form-group"><label>供应商名称 *</label><input type="text" id="supplierName" required></div>
+                <div class="form-group"><label>联系人</label><input type="text" id="contact"></div>
+                <div class="form-group"><label>联系电话</label><input type="text" id="phone"></div>
+                <div class="form-group"><label>备注</label><input type="text" id="remark"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeModal()" style="background: #999; color: white;">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        window.addEventListener('load', function() {
+            if (!localStorage.getItem('token')) { window.location.href = '/login.html'; return; }
+            loadSuppliers();
+        });
+        async function loadSuppliers() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/suppliers', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (result.code === 200) renderTable(result.data || []);
+            } catch (error) { console.error('加载失败:', error); alert('网络错误'); }
+        }
+        function renderTable(suppliers) {
+            const tbody = document.getElementById('supplierTableBody');
+            if (suppliers.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">暂无数据</td></tr>'; return; }
+            tbody.innerHTML = suppliers.map(s => `<tr><td>${s.supplier_id}</td><td>${s.supplier_name}</td><td>${s.contact||'-'}</td><td>${s.phone||'-'}</td><td>${s.remark||'-'}</td><td><button onclick='editSupplier(${JSON.stringify(s)})'>编辑</button> <button onclick="deleteSupplier('${s.supplier_id}')" style="background:#f44336;color:white;">删除</button></td></tr>`).join('');
+        }
+        function showAddModal() { 
+            document.getElementById('modalTitle').textContent = '新增供应商';
+            document.getElementById('supplierForm').reset(); 
+            document.getElementById('supplierId').value = '';
+            document.getElementById('supplierModal').classList.add('show'); 
+        }
+        function editSupplier(supplier) {
+            document.getElementById('modalTitle').textContent = '编辑供应商';
+            document.getElementById('supplierId').value = supplier.supplier_id;
+            document.getElementById('supplierName').value = supplier.supplier_name;
+            document.getElementById('contact').value = supplier.contact || '';
+            document.getElementById('phone').value = supplier.phone || '';
+            document.getElementById('remark').value = supplier.remark || '';
+            document.getElementById('supplierModal').classList.add('show');
+        }
+        function closeModal() { document.getElementById('supplierModal').classList.remove('show'); }
+        
+        document.getElementById('supplierForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const supplierId = document.getElementById('supplierId').value;
+            const data = {
+                supplier_id: supplierId ? parseInt(supplierId) : undefined,
+                supplier_name: document.getElementById('supplierName').value,
+                contact: document.getElementById('contact').value,
+                phone: document.getElementById('phone').value,
+                remark: document.getElementById('remark').value
+            };
+            
+            try {
+                const token = localStorage.getItem('token');
+                const url = supplierId ? '/api/suppliers/update' : '/api/suppliers';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.code === 200) {
+                    alert('保存成功');
+                    closeModal();
+                    loadSuppliers();
+                } else {
+                    alert(result.msg || '保存失败');
+                }
+            } catch (error) {
+                console.error('保存失败:', error);
+                alert('网络错误');
+            }
+        });
+        
+        async function deleteSupplier(supplierId) {
+            if (!confirm('确定要删除该供应商吗？')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/suppliers/${supplierId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (result.code === 200) {
+                    alert('删除成功');
+                    loadSuppliers();
+                } else {
+                    alert(result.msg || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除失败:', error);
+                alert('网络错误');
+            }
+        }
+
+        async function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+# ============================================
+# Rust WMS 项目配置文件
+# 对应 Java 的 pom.xml / build.gradle
+# 定义项目元数据和所有第三方依赖
+# ============================================
+
+[package]
+name = "rwms"                              # 项目名称：Rust WMS
+version = "0.1.0"                          # 版本号（语义化版本：主版本.次版本.修订号）
+edition = "2024"                           # Rust 版本（2024 表示使用 Rust 2024 edition）
+description = "Rust Warehouse Management System (Axum + SeaORM + SQLite) - single binary, embedded DB"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/shuying-code/rwms"
+homepage = "https://github.com/shuying-code/rwms"
+keywords = ["wms", "warehouse", "axum", "sea-orm", "sqlite"]
+categories = ["web-programming::http-server", "database"]
+
+# ============================================
+# 依赖声明
+# Cargo 自动下载并编译所有声明的依赖包
+# ============================================
+
+[dependencies]
+
+# --- Web 框架 ---
+axum = { version = "0.7", features = ["macros"] }  # Web 框架：处理 HTTP 请求/响应（对应 Java 的 Spring MVC / Spring Boot）
+                                             # 核心类型：Router, Handler, State, Json, Query, Path, Extension
+
+# --- 异步运行时 ---
+tokio = { version = "1", features = ["full"] }  # 异步运行时：提供 async/await 执行环境（对应 Java 的 Project Loom / Netty）
+                                             # features = ["full"]：启用所有特性（tcp, udp, fs, sync, rt-multi-thread 等）
+
+# --- 序列化 ---
+serde = { version = "1", features = ["derive"] }  # 序列化框架：Serialize/Deserialize derive 宏（对应 Jackson）
+                                             # features = ["derive"]：启用 #[derive(Serialize, Deserialize)] 宏
+serde_json = "1"                           # JSON 序列化：serde 的 JSON 具体实现
+                                             # 用于：handler 返回 Json<T>、解析请求体 Json<T>
+
+# --- HTTP 中间件 ---
+tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }  # tower 中间件集合
+                                             # cors：跨域资源共享（对应 Java 的 CorsFilter）
+                                             # trace：请求链路追踪（对应 Java 的 Spring Cloud Sleuth）
+                                             # fs：静态文件服务 ServeDir（对应 Spring Boot 的静态资源映射）
+
+# --- 日志追踪 ---
+tracing = "0.1"                            # 结构化日志框架：span/trace 追踪（对应 Java 的 SLF4J / Logback）
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }  # 日志订阅者：将 tracing 输出到控制台/文件
+                                             # env-filter：根据 RUST_LOG 环境变量动态调整日志级别
+tracing-appender = "0.2"                    # 文件日志追加器：支持滚动日志文件输出（对应 Java 的 RollingFileAppender）
+
+# --- ORM 数据库 ---
+sea-orm = { version = "0.12", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-rust_decimal"] }
+                                             # ORM 框架：实体模型、查询构建器、事务管理（对应 Java 的 Spring Data JPA / MyBatis）
+                                             # sqlx-sqlite：SQLite 数据库驱动（替换 sqlx-mysql）
+                                             # runtime-tokio-rustls：异步运行时使用 tokio + TLS 使用 rustls（非 OpenSSL）
+                                             # macros：启用 DeriveEntityModel、DeriveActiveModel 等过程宏
+                                             # with-rust_decimal：Decimal 类型映射支持（精确小数，用于价格/金额）
+
+# --- 环境变量 ---
+dotenvy = "0.15"                           # .env 文件加载：从 .env 文件读取环境变量（对应 Java 的 @Value / @ConfigurationProperties）
+                                             # 例如：DATABASE_URL=sqlite://./wms.db
+
+# --- 时间处理 ---
+chrono = { version = "0.4", features = ["serde", "clock"] }  # 时间库：DateTime、时间计算（对应 Java 的 java.time）
+                                             # features = ["serde"]：支持 DateTime 的 JSON 序列化/反序列化
+
+# --- JWT 认证 ---
+jsonwebtoken = "9.2"                       # JWT 库：Token 生成与验证（对应 Java 的 jjwt）
+                                             # 用于：登录时生成 Token、auth_middleware 验证 Token
+
+# --- UUID 生成 ---
+uuid = { version = "1.6", features = ["v4", "serde"] }  # UUID 生成：v4 随机 UUID（对应 Java 的 UUID.randomUUID()）
+                                             # features = ["v4", "serde"]：启用 v4 随机生成和序列化支持
+
+# --- 异步 Trait ---
+async-trait = "0.1"                       # 异步 trait 方法支持：#[async_trait] 宏（Rust 原生 async fn in trait 尚不完善）
+                                             # 用于：Domain 层 Repository trait 定义异步方法
+
+# --- 错误处理 ---
+thiserror = "1.0"                           # 错误类型宏：简化自定义错误类型定义（对应 Java 的自定义异常类）
+
+# --- Axum 扩展 ---
+axum-extra = { version = "0.9", features = ["typed-header"] }  # Axum 扩展：typed-header 类型安全的请求头提取
+                                             # 例如：从 Authorization header 提取 Bearer Token
+
+# --- Tower 中间件 ---
+tower = "0.4"                              # 底层中间件框架：tower-web 和 tower 的核心抽象（对应 Java 的 Servlet Filter）
+
+# --- 精确小数 ---
+rust_decimal = { version = "1.33", features = ["serde"] }  # 精确小数：避免 IEEE 754 浮点精度丢失（对应 Java 的 BigDecimal）
+                                             # 用于：物资价格（purchase_price, sell_price）、订单金额
+                                             # features = ["serde"]：支持 Decimal 的 JSON 序列化
+
+# --- YAML 配置 ---
+serde_yaml = "0.9"                         # YAML 序列化/反序列化：解析 application.yml 配置（对应 Java 的 SnakeYAML）
+
+# ============================================
+# Release 优化配置
+# 打包发布时使用，减小体积、提升性能
+# ============================================
+
+[profile.release]
+opt-level = "z"        # 优化体积（z = 最小体积，3 = 最快速度）
+lto = true             # 链接时优化（Link-Time Optimization），跨模块内联，减小体积
+codegen-units = 1      # 单编译单元，更好的优化（编译慢但产物更小更快）
+strip = true           # 去除调试符号，显著减小二进制体积

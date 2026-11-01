@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS - 入库管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; background: #f5f7fa; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0 30px; height: 60px; display: flex; justify-content: space-between; align-items: center; }
+        .container { display: flex; min-height: calc(100vh - 60px); }
+        .sidebar { width: 220px; background: white; padding: 20px 0; }
+        .menu-item { padding: 15px 25px; cursor: pointer; color: #333; text-decoration: none; display: block; }
+        .menu-item:hover, .menu-item.active { background: #f0f2ff; color: #667eea; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .page-header { background: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 20px; }
+        .toolbar { display: flex; gap: 10px; margin-top: 15px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .data-table { background: white; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        thead { background: #f5f7fa; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; border-radius: 10px; padding: 30px; width: 700px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .items-section { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        .items-section h4 { margin-bottom: 10px; }
+        .item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .item-row input, .item-row select { 
+            width: 100%; 
+            height: 36px; 
+            padding: 6px 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .item-row input[readonly] { background: #f5f5f5; }
+        .item-row input.amount { background: #fff9e6; font-weight: bold; }
+        .item-list-header { 
+            display: grid; 
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; 
+            gap: 10px; 
+            margin-bottom: 8px; 
+            padding: 10px 10px; 
+            background: #667eea; 
+            color: white; 
+            border-radius: 5px; 
+            font-weight: bold; 
+            font-size: 13px; 
+        }
+        .item-list-header > div { 
+            display: flex; 
+            align-items: center; 
+        }
+        .btn-remove-row { 
+            background: #f44336; 
+            color: white; 
+            border: none; 
+            padding: 6px 12px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            height: 36px;
+            width: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-remove-row:hover { background: #d32f2f; }
+        .status-tag { padding: 3px 10px; border-radius: 3px; font-size: 12px; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-approved { background: #d4edda; color: #155724; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .detail-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-label { color: #666; font-size: 13px; }
+        .detail-value { font-weight: 500; }
+        .items-table { width: 100%; margin-top: 10px; }
+        .items-table th { background: #f0f2ff; padding: 8px; font-size: 13px; }
+        .items-table td { padding: 8px; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>WMS 库存管理系统</h1>
+        <div><span id="userName">管理员</span> | <a href="#" onclick="logout()" style="color: white;">退出</a></div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <a href="/index.html" class="menu-item">📊 首页</a>
+            <a href="/warehouse.html" class="menu-item">🏭 仓库管理</a>
+            <a href="/material.html" class="menu-item">📦 物资管理</a>
+            <a href="/category.html" class="menu-item">📑 物资分类</a>
+            <a href="/inorder.html" class="menu-item active">📥 入库管理</a>
+            <a href="/outorder.html" class="menu-item">📤 出库管理</a>
+            <a href="/stock.html" class="menu-item">📈 库存管理</a>
+            <a href="/supplier.html" class="menu-item">🤝 供应商管理</a>
+            <a href="/customer.html" class="menu-item">👥 客户管理</a>
+        </div>
+        <div class="main-content">
+            <div class="page-header">
+                <h2>入库管理</h2>
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showCreateModal()">+ 新建入库单</button>
+                </div>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>入库单号</th>
+                            <th>仓库</th>
+                            <th>供应商</th>
+                            <th>操作员</th>
+                            <th>状态</th>
+                            <th>采购时间</th>
+                            <th>备注</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inOrderTableBody">
+                        <tr><td colspan="8" style="text-align: center;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建入库单弹窗 -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">新建入库单</h3>
+            <form id="inOrderForm">
+                <div class="form-group">
+                    <label>入库单号 *</label>
+                    <input type="text" id="orderId" required placeholder="如: RK202604160001">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>入库仓库 *</label>
+                        <select id="warehouseId" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>供应商 *</label>
+                        <select id="supplierId" required></select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>联系人</label>
+                        <input type="text" id="contact" placeholder="联系人姓名">
+                    </div>
+                    <div class="form-group">
+                        <label>联系电话</label>
+                        <input type="text" id="phone" placeholder="联系电话">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>采购时间 *</label>
+                        <input type="datetime-local" id="purchaseTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <input type="text" id="remark" placeholder="备注信息">
+                    </div>
+                </div>
+                <!-- 入库明细 -->
+                <div class="items-section">
+                    <h4>入库明细</h4>
+                    <div class="item-list-header">
+                        <div>物资名称</div><div>数量</div><div>进价</div><div>售价</div><div>金额</div><div>操作</div>
+                    </div>
+                    <div id="itemsContainer">
+                        <!-- 动态追加物料行 -->
+                    </div>
+                    <button type="button" class="btn btn-success" onclick="addItemRow()" style="font-size:13px; padding:6px 15px;">+ 添加物资</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeModal()" style="background:#999;color:white;">取消</button>
+                    <button type="submit" class="btn btn-primary">提交入库单</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <h3>入库单详情</h3>
+            <div id="detailContent">
+                <!-- 动态填充 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeDetailModal()" style="background:#999;color:white;">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let suppliersMap = {};
+        let warehousesMap = {};
+
+        window.addEventListener('load', async function() {
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/login.html';
+                return;
+            }
+            await Promise.all([loadWarehouses(), loadSuppliers()]);
+            loadInOrders();
+        });
+
+        async function loadWarehouses() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/warehouses', { headers: { 'Authorization': `Bearer ${token}` } });
+                const json = await res.json();
+                if (json.code === 200) {
+                    const select = document.getElementById('warehouseId');
+                    select.innerHTML = '<option value="">请选择仓库</option>';
+                    (json.data || []).forEach(w => {
+                        warehousesMap[w.warehouse_id] = w.warehouse_code;
+                        select.innerHTML += `<option value="${w.warehouse_id}">${w.warehouse_code} (${w.warehouse_id})</option>`;
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadSuppliers() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/suppliers', { headers: { 'Authorization': `Bearer ${token}` } });
+                const json = await res.json();
+                if (json.code === 200) {
+                    const select = document.getElementById('supplierId');
+                    select.innerHTML = '<option value="">请选择供应商</option>';
+                    (json.data || []).forEach(s => {
+                        suppliersMap[s.supplier_id] = s.supplier_name;
+                        select.innerHTML += `<option value="${s.supplier_id}">${s.supplier_name}</option>`;
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadMaterialsForSelect() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/materials?page_index=1&page_size=1000', { headers: { 'Authorization': `Bearer ${token}` } });
+                const json = await res.json();
+                console.log('物资数据:', json);
+                const materials = (json.data || []).reduce((acc, m) => { acc[m.material_id] = m; return acc; }, {});
+                console.log('物资缓存:', materials);
+                return materials;
+            } catch (e) { console.error('加载物资失败:', e); return {}; }
+        }
+
+        let materialsCache = {};
+
+        async function loadInOrders() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/in-orders?page_index=1&page_size=100', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (result.code === 200) {
+                    renderTable(result.data || []);
+                } else {
+                    alert(result.msg || '加载失败');
+                }
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('inOrderTableBody').innerHTML =
+                    '<tr><td colspan="8" style="text-align: center;">网络错误</td></tr>';
+            }
+        }
+
+        function renderTable(orders) {
+            const tbody = document.getElementById('inOrderTableBody');
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">暂无数据</td></tr>';
+                return;
+            }
+            tbody.innerHTML = orders.map(o => {
+                const statusClass = o.order_status === '审核通过' ? 'status-approved' :
+                                    o.order_status === '审核不通过' ? 'status-rejected' : 'status-pending';
+                return `<tr>
+                    <td>${o.order_id}</td>
+                    <td>${o.warehouse_name || o.warehouse_id}</td>
+                    <td>${o.supplier_name || o.supplier_id}</td>
+                    <td>${o.operator || o.operator_id || '-'}</td>
+                    <td><span class="status-tag ${statusClass}">${o.order_status}</span></td>
+                    <td>${o.purchase_time ? o.purchase_time.substring(0, 16).replace('T', ' ') : '-'}</td>
+                    <td>${o.remark || '-'}</td>
+                    <td>
+                        <button onclick="viewOrder('${o.order_id}')" style="padding:5px 10px;">查看</button>
+                        ${o.order_status === '待审核' ? `<button onclick="auditOrder('${o.order_id}', '审核通过')" style="padding:5px 10px;background:#4caf50;color:white;border:none;border-radius:3px;cursor:pointer;margin-right:5px;">通过</button><button onclick="auditOrder('${o.order_id}', '审核不通过')" style="padding:5px 10px;background:#f44336;color:white;border:none;border-radius:3px;cursor:pointer;">拒绝</button>` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function viewOrder(orderId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/in-orders/${orderId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const json = await res.json();
+                if (json.code !== 200) { alert(json.msg || '加载失败'); return; }
+
+                const d = json.data;
+                const order = d.order || d;
+                const items = d.items || [];
+
+                let itemsHtml = '';
+                if (items.length > 0) {
+                    itemsHtml = `<table class="items-table">
+                        <thead><tr><th>物资编号</th><th>物资名称</th><th>数量</th><th>进价</th><th>售价</th><th>总金额</th></tr></thead>
+                        <tbody>${items.map(i => {
+                            const amount = (i.total_amount !== null && i.total_amount !== undefined)
+                                ? (typeof i.total_amount === 'string' ? parseFloat(i.total_amount) : i.total_amount)
+                                : (i.num * (typeof i.purchase_price === 'string' ? parseFloat(i.purchase_price) : i.purchase_price));
+                            return `<tr>
+                                <td>${i.material_id}</td><td>${i.material_name || '-'}</td><td>${i.num}</td><td>¥${i.purchase_price}</td><td>¥${i.sell_price}</td>
+                                <td>¥${amount.toFixed(2)}</td>
+                            </tr>`;
+                        }).join('')}</tbody></table>`;
+                } else {
+                    itemsHtml = '<p style="color:#999;">暂无明细</p>';
+                }
+
+                const statusClass = order.order_status === '审核通过' ? 'status-approved' :
+                                   order.order_status === '审核不通过' ? 'status-rejected' : 'status-pending';
+
+                document.getElementById('detailContent').innerHTML = `
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="detail-label">入库单号</div><div class="detail-value">${order.order_id}</div></div>
+                        <div class="detail-item"><div class="detail-label">仓库</div><div class="detail-value">${order.warehouse_name || order.warehouse_id}</div></div>
+                        <div class="detail-item"><div class="detail-label">供应商</div><div class="detail-value">${order.supplier_name || order.supplier_id}</div></div>
+                        <div class="detail-item"><div class="detail-label">操作员</div><div class="detail-value">${order.operator || order.operator_id || '-'}</div></div>
+                        <div class="detail-item"><div class="detail-label">联系人</div><div class="detail-value">${order.contact || '-'}</div></div>
+                        <div class="detail-item"><div class="detail-label">联系电话</div><div class="detail-value">${order.phone || '-'}</div></div>
+                        <div class="detail-item"><div class="detail-label">状态</div><div class="detail-value"><span class="status-tag ${statusClass}">${order.order_status}</span></div></div>
+                        <div class="detail-item"><div class="detail-label">采购时间</div><div class="detail-value">${order.purchase_time ? order.purchase_time.substring(0, 16).replace('T', ' ') : '-'}</div></div>
+                        <div class="detail-item"><div class="detail-label">完成时间</div><div class="detail-value">${order.complete_time ? order.complete_time.substring(0, 16).replace('T', ' ') : '-'}</div></div>
+                        <div class="detail-item"><div class="detail-label">备注</div><div class="detail-value">${order.remark || '-'}</div></div>
+                    </div>
+                    <h4 style="margin-top:15px;">入库明细</h4>
+                    ${itemsHtml}`;
+                document.getElementById('detailModal').classList.add('show');
+            } catch (e) { console.error(e); alert('加载详情失败'); }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        async function addItemRow() {
+            if (Object.keys(materialsCache).length === 0) {
+                materialsCache = await loadMaterialsForSelect();
+            }
+            const container = document.getElementById('itemsContainer');
+            const idx = container.children.length;
+            const options = Object.entries(materialsCache).map(([id, m]) =>
+                `<option value="${id}" data-price="${m.purchase_price}" data-sell="${m.sell_price}">${id} - ${m.material_name}</option>`
+            ).join('');
+            container.innerHTML += `<div class="item-row" id="row${idx}">
+                <select class="material-select">${options || '<option value="">请先添加物资</option>'}</select>
+                <input type="number" class="item-num" placeholder="数量" min="1" value="1">
+                <input type="number" class="item-price" placeholder="进价" step="0.01">
+                <input type="number" class="item-sell" placeholder="售价" step="0.01">
+                <input type="number" class="item-amount amount" placeholder="金额" step="0.01" readonly>
+                <button type="button" onclick="removeRow(${idx})" class="btn-remove-row">×</button>
+            </div>`;
+
+            // 绑定物资选择事件：自动填充价格并计算金额
+            document.querySelector(`#row${idx} .material-select`).addEventListener('change', function() {
+                const row = this.closest('.item-row');
+                const opt = this.selectedOptions[0];
+                console.log('选中物资:', opt.value, '价格数据:', opt.dataset);
+                if (opt && opt.value) {
+                    const material = materialsCache[opt.value];
+                    if (material) {
+                        const price = typeof material.purchase_price === 'string' ? material.purchase_price : String(material.purchase_price);
+                        const sell = typeof material.sell_price === 'string' ? material.sell_price : String(material.sell_price);
+                        row.querySelector('.item-price').value = price;
+                        row.querySelector('.item-sell').value = sell;
+                        calculateAmount(row);
+                    }
+                }
+            });
+
+            // 绑定数量变化事件：重新计算金额
+            document.querySelector(`#row${idx} .item-num`).addEventListener('input', function() {
+                calculateAmount(this.closest('.item-row'));
+            });
+
+            // 绑定进价变化事件：重新计算金额
+            document.querySelector(`#row${idx} .item-price`).addEventListener('input', function() {
+                calculateAmount(this.closest('.item-row'));
+            });
+        }
+
+        // 计算单行金额（数量 × 进价）
+        function calculateAmount(row) {
+            const num = parseFloat(row.querySelector('.item-num').value) || 0;
+            const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            row.querySelector('.item-amount').value = (num * price).toFixed(2);
+        }
+
+        function removeRow(idx) {
+            document.getElementById('row' + idx).remove();
+        }
+
+        async function showCreateModal() {
+            document.getElementById('inOrderForm').reset();
+            document.getElementById('itemsContainer').innerHTML = '';
+            // 设置默认采购时间
+            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('purchaseTime').value = now.toISOString().slice(0, 16);
+            // 生成默认单号
+            const ts = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            document.getElementById('orderId').value = 'RK' + ts + String(Math.floor(Math.random() * 9999)).padStart(4, '0');
+            materialsCache = await loadMaterialsForSelect();
+            await addItemRow();
+            document.getElementById('createModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('createModal').classList.remove('show');
+        }
+
+        document.getElementById('inOrderForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '保存中...';
+            submitBtn.disabled = true;
+            // 收集明细
+            const rows = document.querySelectorAll('#itemsContainer .item-row');
+            const items = [];
+            rows.forEach(row => {
+                const matId = row.querySelector('.material-select').value;
+                const num = parseInt(row.querySelector('.item-num').value);
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                const sell = parseFloat(row.querySelector('.item-sell').value) || 0;
+                if (matId && num > 0) {
+                    items.push({ material_id: matId, num, purchase_price: price, sell_price: sell });
+                }
+            });
+            if (items.length === 0) {
+                submitBtn.innerHTML = '提交入库单';
+                submitBtn.disabled = false;
+                alert('请选择物资并填写数量');
+                return;
+            }
+
+            const data = {
+                order_id: document.getElementById('orderId').value,
+                warehouse_id: document.getElementById('warehouseId').value,
+                supplier_id: parseInt(document.getElementById('supplierId').value),
+                contact: document.getElementById('contact').value || null,
+                phone: document.getElementById('phone').value || null,
+                purchase_time: document.getElementById('purchaseTime').value + ':00Z',
+                remark: document.getElementById('remark').value || null,
+                items
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/in-orders', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                submitBtn.innerHTML = '提交入库单';
+                submitBtn.disabled = false;
+                if (result.code === 200) {
+                    alert('入库单创建成功');
+                    closeModal();
+                    loadInOrders();
+                } else {
+                    alert(result.msg || '创建失败');
+                }
+            } catch (error) {
+                submitBtn.innerHTML = '提交入库单';
+                submitBtn.disabled = false;
+                console.error('创建失败:', error);
+                alert('网络错误');
+            }
+        });
+
+        async function auditOrder(orderId, status) {
+            if (!confirm(`确定要${status}吗？`)) return;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/in-orders/audit', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: orderId, order_status: status })
+                });
+                const result = await response.json();
+                if (result.code === 200) {
+                    alert('审核成功');
+                    loadInOrders();
+                } else {
+                    alert(result.msg || '审核失败');
+                }
+            } catch (error) {
+                console.error('审核失败:', error);
+                alert('网络错误');
+            }
+        }
+
+        async function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                try {
+                    const token = localStorage.getItem('token');
+                    await fetch('/api/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                } catch (e) {}
+                localStorage.clear();
+                window.location.href = '/login.html';
+            }
+        }
+    </script>
+</body>
+</html>

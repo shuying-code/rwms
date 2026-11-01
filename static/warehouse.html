@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS - 仓库管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; background: #f5f7fa; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0 30px; height: 60px; display: flex; justify-content: space-between; align-items: center; }
+        .container { display: flex; min-height: calc(100vh - 60px); }
+        .sidebar { width: 220px; background: white; padding: 20px 0; }
+        .menu-item { padding: 15px 25px; cursor: pointer; color: #333; text-decoration: none; display: block; }
+        .menu-item:hover, .menu-item.active { background: #f0f2ff; color: #667eea; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .page-header { background: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 20px; }
+        .toolbar { display: flex; gap: 10px; margin-top: 15px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .data-table { background: white; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        thead { background: #f5f7fa; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; border-radius: 10px; padding: 30px; width: 500px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>WMS 库存管理系统</h1>
+        <div><span id="userName">管理员</span> | <a href="#" onclick="logout()" style="color: white;">退出</a></div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <a href="/index.html" class="menu-item">📊 首页</a>
+            <a href="/warehouse.html" class="menu-item active">🏭 仓库管理</a>
+            <a href="/material.html" class="menu-item">📦 物资管理</a>
+            <a href="/category.html" class="menu-item">📑 物资分类</a>
+            <a href="/inorder.html" class="menu-item">📥 入库管理</a>
+            <a href="/outorder.html" class="menu-item">📤 出库管理</a>
+            <a href="/stock.html" class="menu-item">📈 库存管理</a>
+            <a href="/supplier.html" class="menu-item">🤝 供应商管理</a>
+            <a href="/customer.html" class="menu-item">👥 客户管理</a>
+        </div>
+
+        <div class="main-content">
+            <div class="page-header">
+                <h2>仓库管理</h2>
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showAddModal()">+ 新增仓库</button>
+                    <button class="btn btn-success" onclick="loadWarehouses()">🔄 刷新</button>
+                </div>
+            </div>
+
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>仓库编号</th>
+                            <th>仓库代号</th>
+                            <th>仓库经理</th>
+                            <th>最大空间</th>
+                            <th>剩余空间</th>
+                            <th>使用率</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="warehouseTableBody">
+                        <tr><td colspan="8" style="text-align: center;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="warehouseModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">新增仓库</h3>
+            <form id="warehouseForm">
+                <input type="hidden" id="warehouseId">
+                <div class="form-group">
+                    <label>仓库编号 *</label>
+                    <input type="text" id="warehouseCode" required placeholder="如: CK100001">
+                </div>
+                <div class="form-group">
+                    <label>仓库代号 *</label>
+                    <input type="text" id="warehouseName" required placeholder="如: A">
+                </div>
+                <div class="form-group">
+                    <label>仓库经理</label>
+                    <input type="text" id="manager" placeholder="请输入经理姓名">
+                </div>
+                <div class="form-group">
+                    <label>最大空间（件）*</label>
+                    <input type="number" id="maxSpace" required placeholder="请输入最大容量">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeModal()" style="background: #999; color: white;">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function() {
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/login.html';
+                return;
+            }
+            loadWarehouses();
+        });
+
+        async function loadWarehouses() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/warehouses', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    renderTable(result.data || []);
+                } else {
+                    alert(result.msg || '加载失败');
+                }
+            } catch (error) {
+                console.error('加载失败:', error);
+                alert('网络错误');
+            }
+        }
+
+        function renderTable(warehouses) {
+            const tbody = document.getElementById('warehouseTableBody');
+            
+            if (warehouses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">暂无数据</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = warehouses.map(w => {
+                const usageRate = w.max_space > 0 ? ((w.max_space - w.remain_space) / w.max_space * 100).toFixed(1) : 0;
+                return `
+                    <tr>
+                        <td>${w.warehouse_id}</td>
+                        <td>${w.warehouse_code}</td>
+                        <td>${w.manager || '-'}</td>
+                        <td>${w.max_space}</td>
+                        <td>${w.remain_space}</td>
+                        <td>${usageRate}%</td>
+                        <td>${w.create_time ? w.create_time.substring(0, 10) : '-'}</td>
+                        <td>
+                            <button onclick='editWarehouse(${JSON.stringify(w)})' style="padding: 5px 10px; margin-right: 5px;">编辑</button>
+                            <button onclick="deleteWarehouse('${w.warehouse_id}')" style="padding: 5px 10px; background: #f44336; color: white;">删除</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = '新增仓库';
+            document.getElementById('warehouseForm').reset();
+            document.getElementById('warehouseId').value = '';
+            document.getElementById('warehouseModal').classList.add('show');
+        }
+
+        function editWarehouse(warehouse) {
+            document.getElementById('modalTitle').textContent = '编辑仓库';
+            document.getElementById('warehouseId').value = warehouse.warehouse_id;
+            document.getElementById('warehouseCode').value = warehouse.warehouse_id;
+            document.getElementById('warehouseName').value = warehouse.warehouse_code;
+            document.getElementById('manager').value = warehouse.manager || '';
+            document.getElementById('maxSpace').value = warehouse.max_space;
+            document.getElementById('warehouseModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('warehouseModal').classList.remove('show');
+        }
+
+        document.getElementById('warehouseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const warehouseId = document.getElementById('warehouseId').value;
+            const data = {
+                warehouse_id: warehouseId || document.getElementById('warehouseCode').value,
+                warehouse_code: document.getElementById('warehouseName').value,
+                manager: document.getElementById('manager').value,
+                max_space: parseInt(document.getElementById('maxSpace').value),
+                remain_space: parseInt(document.getElementById('maxSpace').value)
+            };
+            
+            try {
+                const token = localStorage.getItem('token');
+                const url = warehouseId ? '/api/warehouses/update' : '/api/warehouses';
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    alert('保存成功');
+                    closeModal();
+                    loadWarehouses();
+                } else {
+                    alert(result.msg || '保存失败');
+                }
+            } catch (error) {
+                console.error('保存失败:', error);
+                alert('网络错误');
+            }
+        });
+
+        async function deleteWarehouse(warehouseId) {
+            if (!confirm('确定要删除该仓库吗？')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/warehouses/${warehouseId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    alert('删除成功');
+                    loadWarehouses();
+                } else {
+                    alert(result.msg || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除失败:', error);
+                alert('网络错误');
+            }
+        }
+
+        async function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            }
+        }
+    </script>
+</body>
+</html>

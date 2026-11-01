@@ -1,0 +1,13 @@
+target
+dist
+.git
+.github
+.idea
+.comate
+.vscode
+logs
+database
+output
+*.log
+*.exe
+*.pdb
