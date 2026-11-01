@@ -2,6 +2,8 @@
 
 # rwms (Rust Warehouse Management System)
 
+> 📘 **[User Manual](docs/用户操作手册.en.md)** · [简体中文手册](docs/用户操作手册.md)
+
 A **local-first, single-binary, zero-external-database** Warehouse Management System (WMS) built with **Rust + Axum + SeaORM**. It embeds **SQLite**, ships a complete web frontend (HTML/CSS/JS) and JWT authentication — **ready out of the box, deploy as one binary** — on Windows / macOS / Linux.
 
 <p>
