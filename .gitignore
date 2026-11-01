@@ -13,13 +13,13 @@ target/
 # Build / packaging artifacts
 build_output.txt
 *.log
-output/
+/output/
 innosetup-*.exe
 *.pdb
 
 # Runtime data
-database/
-logs/
+/database/
+/logs/
 
 # IDE
 .idea/

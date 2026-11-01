@@ -1,13 +1,13 @@
 target
-dist
+/dist
 .git
 .github
 .idea
 .comate
 .vscode
-logs
-database
-output
+/logs
+/database
+/output
 *.log
 *.exe
 *.pdb
