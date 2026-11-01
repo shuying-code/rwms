@@ -222,6 +222,7 @@ installer.iss / setup.iss  Inno Setup 安装包脚本（Windows）
 
 | 文件 | 内容 |
 |---|---|
+| `docs/用户操作手册.md` | 面向用户的操作手册（启动 / 登录 / 业务模块流程 / API / 数据与配置 / FAQ） |
 | `DEPLOYMENT.md` | 部署与打包说明 |
 | `docs/FEEDBACK.md` | 使用反馈指南 |
 | `docs/README.md` | 文档索引 |
