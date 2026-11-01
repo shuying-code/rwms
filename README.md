@@ -1,5 +1,7 @@
 # rwms（Rust Warehouse Management System）
 
+<p align="center">🌐 <b>语言 / Language</b>：<a href="README.md">简体中文</a> · <a href="README.en.md">English</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.ru.md">Русский</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.pt-BR.md">Português</a></p>
+
 一个用 **Rust + Axum + SeaORM** 编写的**本地化、单文件、零外部数据库依赖**的仓库管理系统（WMS）。
 内嵌 **SQLite**，内置完整 Web 前端（HTML/CSS/JS）与 JWT 认证，**开箱即用、单二进制部署**，支持 Windows / macOS / Linux。
 
